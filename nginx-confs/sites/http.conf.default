@@ -1,0 +1,53 @@
+server {
+    listen       80;
+    listen       [::]:80;
+    server_name  [DOMAINS];
+    root         /home/[UNIX_USER]/public;
+
+    access_log  /var/log/nginx/[UNIX_USER]-access.log  main;
+    error_log  /var/log/nginx/[UNIX_USER]-error.log;
+    index index.php index.html index.htm;
+    
+    # Modules
+    brotli on;
+    modsecurity on;
+    modsecurity_rules_file /etc/nginx/modsec/main.conf;
+
+    # allow incoming connections only from cloudflare servers
+    # start-cloudflare-Lockdown
+    include /etc/nginx/server/enable-cf-only-access.conf;
+    # end-cloudflare-Lockdown
+
+    # resolve real ip address of visitor behind cloudflare proxy
+    include /etc/nginx/server/cf-realip.conf;
+    
+    # security headers
+    # start-security-headers
+    # include /etc/nginx/server/security-headers.conf;
+    # end-security-headers
+
+    # WordPress security & cache configuration (super cache, wp-rocket, etc)
+    include /etc/nginx/server/wp-shield.conf;
+    include /etc/nginx/server/wp-locations.conf;
+    include /etc/nginx/server/wp-cache.conf;
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_param PHP_VALUE open_basedir="/home/[UNIX_USER]/public:/var/lib/php/session:/tmp";
+        fastcgi_intercept_errors on;
+        fastcgi_index  index.php;
+        include        /etc/nginx/fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        fastcgi_pass   unix:/run/php-fpm/www-[UNIX_USER].sock;
+
+        #fastcgi_buffer_size 128k;  
+        #fastcgi_buffers 256 16k;  
+        #fastcgi_busy_buffers_size 256k;  
+        #fastcgi_temp_file_write_size 256k;  
+        # FastCGI Cache [makes an issues]
+        # fastcgi_cache_bypass $skip_cache;
+        # fastcgi_no_cache $skip_cache;
+        # fastcgi_cache WORDPRESS;
+        # fastcgi_cache_valid  60m;
+    }
+}

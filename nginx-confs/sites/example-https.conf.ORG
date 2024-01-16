@@ -1,0 +1,66 @@
+server {
+        listen       443 ssl http2;
+        listen       [::]:443 ssl http2;
+        server_name  wp.snirsofer.com;
+        root         /home/myuser/public;
+
+        access_log  /var/log/nginx/website-access.log  main;
+        error_log  /var/log/nginx/website-error.log;
+        index index.php index.html index.htm;
+
+        ssl_certificate "/etc/pki/nginx/wp.snirsofer.com.crt";
+        ssl_certificate_key "/etc/pki/nginx/private/wp.snirsofer.com.key";
+        ssl_session_cache shared:SSL:5m;
+        ssl_session_timeout  10m;
+        # ssl_ciphers          HIGH:!aNULL:!MD5;
+        ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+        ssl_ecdh_curve secp384r1;
+        ssl_protocols        TLSv1.2 TLSv1.3;
+
+        ssl_session_tickets off;
+        ssl_prefer_server_ciphers on;
+        ssl_stapling on;
+        ssl_stapling_verify on;
+        ssl_trusted_certificate /etc/nginx/certs/cloudflare_origin_caroot_rsa.pem;
+        resolver 1.1.1.1 1.0.0.1 valid=300s;
+        resolver_timeout 5s;
+        ssl_buffer_size 4k; # I've since found 8k works best for this blog. (test!!) Default = 16k
+
+
+
+        # allow incoming connections only from cloudflare servers
+        include /etc/nginx/server/enable-cf-only-access.conf;
+
+        # resolve real ip address of visitor behind cloudflare proxy
+        include /etc/nginx/server/cf-realip.conf;
+
+        # security headers
+        include /etc/nginx/server/security-headers.conf;
+
+        # WordPress security & cache configuration (super cache, wp-rocket, etc)
+        include /etc/nginx/server/wp-shield.conf;
+        include /etc/nginx/server/wp-locations.conf;
+        include /etc/nginx/server/wp-cache.conf;
+
+        location ~ \.php$ {
+                # root /home/myuser/public;
+                try_files $uri =404;
+                fastcgi_param PHP_VALUE open_basedir="/home/myuser/public:/var/lib/php/session:/tmp";
+                fastcgi_intercept_errors on;
+                fastcgi_index  index.php;
+                include        /etc/nginx/fastcgi_params;
+                fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+                fastcgi_pass   unix:/run/php-fpm/www-myuser.sock;
+
+                #fastcgi_buffer_size 128k;  
+                #fastcgi_buffers 256 16k;  
+                #fastcgi_busy_buffers_size 256k;  
+                #fastcgi_temp_file_write_size 256k;  
+
+                # FastCGI Cache [makes an issues]
+                # fastcgi_cache_bypass $skip_cache;
+                # fastcgi_no_cache $skip_cache;
+                # fastcgi_cache WORDPRESS;
+                # fastcgi_cache_valid  60m;
+        }
+}

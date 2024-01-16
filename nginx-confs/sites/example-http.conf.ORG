@@ -1,0 +1,46 @@
+server {
+listen       80;
+    listen       [::]:80;
+    server_name  wpus.snirsofer.com;
+    root         /home/myuser/public;
+
+    access_log  /var/log/nginx/access-myuser.log  main;
+    error_log  /var/log/nginx/error-myuser.log;
+    index index.php index.html index.htm;
+    
+    # allow incoming connections only from cloudflare servers
+    include /etc/nginx/server/enable-cf-only-access.conf;
+
+    # resolve real ip address of visitor behind cloudflare proxy
+    include /etc/nginx/server/cf-realip.conf;
+    
+    # security headers
+    # include /etc/nginx/server/security-headers.conf;
+
+    # WordPress security & cache configuration (super cache, wp-rocket, etc)
+    include /etc/nginx/server/wp-shield.conf;
+    include /etc/nginx/server/wp-locations.conf;
+    include /etc/nginx/server/wp-cache.conf;
+
+    location ~ \.php$ {
+    # root /home/myuser/public;
+            try_files $uri =404;
+            fastcgi_param PHP_VALUE open_basedir="/home/myuser/public:/var/lib/php/session:/tmp";
+            fastcgi_intercept_errors on;
+            fastcgi_index  index.php;
+            include        /etc/nginx/fastcgi_params;
+            fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+            fastcgi_pass   unix:/run/php-fpm/www-myuser.sock;
+
+    #fastcgi_buffer_size 128k;  
+            #fastcgi_buffers 256 16k;  
+            #fastcgi_busy_buffers_size 256k;  
+        #fastcgi_temp_file_write_size 256k;  
+
+            # FastCGI Cache [makes an issues]
+            # fastcgi_cache_bypass $skip_cache;
+            # fastcgi_no_cache $skip_cache;
+            # fastcgi_cache WORDPRESS;
+            # fastcgi_cache_valid  60m;
+    }
+}

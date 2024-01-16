@@ -1,0 +1,203 @@
+# Deny List
+if ($request_method !~ ^(GET|POST|HEAD)$ ) {
+        return 444;
+}
+
+location = /xmlrpc.php { deny all;  }
+location = /install.php { deny all; }
+# location = /upgrade.php { deny all; }
+location = /wp-signup.php { deny all; }
+location = /wp-register.php { deny all; }
+location = /wp-links-opml.php { deny all; }
+location = /wp-main.php { deny all; }
+location = /class-wp-main.php { deny all; }
+location = /wp-admin/maint/repair.php { deny all; }
+location ~ ^/wp-json/wp/v2/users { deny all; }
+location ~* ^/.*.(html|txt|log)$ {
+        deny all;
+}
+location ~ /\. {
+    deny all;
+}
+
+location = /favicon.ico { log_not_found off; access_log off; }
+location = /robots.txt { allow all; log_not_found off; access_log off; }
+
+location ~ ^/wp-admin$ {
+        set $verify_admin 1;
+        if ($http_referer !~ "^$1.*$") {
+                        set $verify_admin 0;
+        }
+        if ($http_cookie !~ "wordpress_logged_in") {
+                        set $verify_admin 0;
+        }
+        if ($verify_admin = 0) {
+                        return 403;
+        }
+}
+#location ^~ /wp-admin/install.php {
+#       deny all;
+#}
+
+# location ^~ /wp-admin/upgrade.php {
+#       deny all;
+# }
+
+location ~* ^/wp-content/plugins/.+\.(txt|log|md|zip|sql)$ {
+        deny all;
+}
+location ~* wp-admin/includes { deny all; }
+location ~* wp-includes/theme-compat/ { deny all; }
+location ~* wp-includes/js/tinymce/langs/.*.php { deny all; }
+location /wp-includes/ { internal; }
+location ~* wp-content/temp/ { deny all; }
+
+
+# allow AJAX requests in themes and plugins
+# location ~ ^/wp-admin/admin-ajax.php$ { allow all; }
+#Deny access to wp-content folders for suspicious files
+location ~* ^/(wp-content)/(.*?)\.(zip|gz|tar|bzip2|7z)\$ { deny all; }
+location ~ ^/wp-content/uploads/sucuri { deny all; }
+location ~ ^/wp-content/updraft { deny all; }
+
+# Block nginx-help log from public viewing
+location ~* /wp-content/uploads/nginx-helper/ { deny all; }
+location ~ ^/(wp-content/js/tinymce/wp-tinymce.php) { allow all; }
+
+# Deny access to any files with a .php extension in the uploads directory
+# Works in sub-directory installs and also in multisite network
+location ~* /(?:uploads|files)/.*\.php\$ { deny all; }
+
+# Deny access to uploads that aren�t images, videos, music, etc.
+
+location ~* ^/wp-content/uploads/elementor/css/.*.(css)$ {
+        allow all;
+}
+
+location ~* ^/wp-content/uploads/.*.(html|htm|shtml|php|js|swf|css)$ {
+        deny all;
+}
+
+
+# only for testing
+location ~* \.(xml|ogg|ogv|svg|svgz|eot|otf|woff|mp4|ttf|css|rss|atom|js|jpg|jpeg|gif|png|ico|zip|tgz|gz|rar|bz2|doc|xls|exe|ppt|tar|mid|midi|wav|bmp|rtf)$ {
+     expires max;
+     log_not_found off;
+     access_log off;
+     open_file_cache max=3000 inactive=120s;
+     open_file_cache_valid 45s;
+     open_file_cache_min_uses 2;
+     open_file_cache_errors off;
+     tcp_nodelay off;
+     add_header Cache-Control public;
+     add_header X-Static-Loaded "yes cached";
+
+}
+
+# Cache for static files
+#location ~* \.(?:css|js|cur|js|jpe?g|gif|htc|ico|png|otf|ttf|eot|woff|svg|woff2)$ {
+#       access_log off; 
+#       expires max;
+#       add_header Cache-Control public;
+#       add_header X-Static-Loaded "yes cached";
+
+        ## No need to bleed constant updates. Send the all shebang in one
+        ## fell swoop.
+#       tcp_nodelay off;
+        ## Set the OS file cache.
+#       open_file_cache max=3000 inactive=120s;
+#       open_file_cache_valid 45s;
+#       open_file_cache_min_uses 2;
+#       open_file_cache_errors off;
+#}
+
+
+
+# Set SEOPress Rewrites
+location ~ ([^/]*)sitemap(.*)\.x(m|s)l$ {
+                        ## SEOPress
+                        rewrite ^/sitemaps\.xml$ /index.php?seopress_sitemap=1 last;
+                        rewrite ^/sitemaps/news.xml$ /index.php?seopress_news=$1 last;
+                        rewrite ^/sitemaps/video.xml$ /index.php?seopress_video=$1 last;
+                        rewrite ^/sitemaps/author.xml$ /index.php?seopress_author=$1 last;
+                        rewrite ^/sitemaps_xsl\.xsl$ /index.php?seopress_sitemap_xsl=1 last;
+                        rewrite ^/sitemaps/([^/]+?)-sitemap([0-9]+)?.xml$ /index.php?seopress_cpt=$1&seopress_paged=$2 last;
+                    }
+
+
+location / {
+
+    if ($args ~ "^author=\d") { return 404; }
+    # requires server support
+    gzip_static on;
+
+    error_page 418 = @cachemiss;
+    error_page 419 = @mobileaccess;
+    recursive_error_pages on;
+
+    # bypass POST requests
+    if ($request_method = POST) { return 418; }
+
+    # uncommenting the following degrades the performance on certain sites. YMMV
+    # if ($query_string != "") { return 418; }
+
+    # bypass cache for common query strings
+    if ($arg_s != "") { return 418; } # search query
+    if ($arg_p != "") { return 418; } # request a post / page by ID
+    if ($arg_amp != "") { return 418; } # amp test
+    if ($arg_preview = "true") { return 418; } # preview post / page
+    if ($arg_ao_noptimize != "") { return 418; } # support for Autoptimize plugin
+
+    if ($http_cookie ~* "wordpress_logged_in_") { return 418; }
+    if ($http_cookie ~* "comment_author_") { return 418; }
+    if ($http_cookie ~* "wp_postpass_") { return 418; }
+
+    # avoid duplicate content on Amazon CloudFront and KeyCDN.
+    if ( $http_user_agent = "Amazon CloudFront" ) { return 403; access_log off; }
+    if ($http_x_pull = "KeyCDN") { return 403; access_log off; }
+
+    # uncomment the following, if WP Super Cache plugin is set to create a separate cache for mobile visitors
+    # if ($http_user_agent ~* "2.0\ MMP|240x320|400X240|AvantGo|BlackBerry|Blazer|Cellphone|Danger|DoCoMo|Elaine/3.0|EudoraWeb|Googlebot-Mobile|hiptop|IEMobile|KYOCERA/WX310K|LG/U990|MIDP-2.|MMEF20|MOT-V|NetFront|Newt|Nintendo\ Wii|Nitro>
+    # add_header "Vary" "User-Agent";
+
+    # uncomment the following if deemed fit, in addition to the above line to enable @mobileaccess
+    # if ($http_user_agent ~* "w3c\ |w3c-|acs-|alav|alca|amoi|audi|avan|benq|bird|blac|blaz|brew|cell|cldc|cmd-|dang|doco|eric|hipt|htc_|inno|ipaq|ipod|jigs|kddi|keji|leno|lg-c|lg-d|lg-g|lge-|lg/u|maui|maxo|midp|mits|mmef|mobi|mot-|moto|>
+
+    try_files "/wp-content/cache/supercache/$host${uri}index-https.html"
+        "/wp-content/cache/cache-enabler/$host${uri}index.html"
+        "/wp-content/cache/wp-rocket/$host${uri}$is_args$args/index-https.html"
+        "/wp-content/cache/all/${uri}index.html" $uri $uri/ /index.php$is_args$args;
+
+    #--> all the following would apply, only if the request hits the cache
+
+    add_header "X-Cache" "HIT - WP Super Cache";
+
+    # expires modified 30m;
+    expires 30m;
+    add_header "Cache-Control" "must-revalidate";
+
+    # For proxies
+    # add_header "Cache-Control" "s-maxage=3600";
+}
+
+location @mobileaccess {
+    # try_files $uri $uri/ /index.php$is_args$args;
+    try_files "/wp-content/cache/supercache/$host${uri}index-https-mobile.html"
+        "/wp-content/cache/cache-enabler/$host${uri}index.html"
+        "/wp-content/cache/wp-rocket/$host${uri}$is_args$args/index-https.html"
+        "/wp-content/cache/all/${uri}index.html" $uri $uri/ /index.php$is_args$args;
+
+    add_header "X-Cache" "HIT - Mobile - WP Super Cache";
+
+    # expires modified 30m;
+    expires 30m;
+    add_header "Cache-Control" "must-revalidate";
+
+    # For proxies
+    # add_header "Cache-Control" "s-maxage=3600";
+}
+
+location @cachemiss {
+    try_files $uri $uri/ /index.php$is_args$args;
+}
+

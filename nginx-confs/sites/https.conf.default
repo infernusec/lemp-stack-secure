@@ -1,0 +1,88 @@
+server {
+    listen       443 ssl http2;
+    listen       [::]:443 ssl http2;
+    server_name  [DOMAINS];
+    root         /home/[UNIX_USER]/public;
+
+    access_log  /var/log/nginx/[UNIX_USER]-access.log  main;
+    error_log  /var/log/nginx/[UNIX_USER]-error.log;
+    index index.php index.html index.htm;
+
+    # Modules
+    brotli on;
+    brotli_comp_level 6;
+    brotli_static on;
+    brotli_types application/atom+xml application/javascript application/json application/rss+xml
+                application/vnd.ms-fontobject application/x-font-opentype application/x-font-truetype
+                application/x-font-ttf application/x-javascript application/xhtml+xml application/xml
+                font/eot font/opentype font/otf font/truetype image/svg+xml image/vnd.microsoft.icon
+                image/x-icon image/x-win-bitmap text/css text/javascript text/plain text/xml;
+
+
+    modsecurity on;
+    modsecurity_rules_file /etc/nginx/modsec/main.conf;
+
+    ssl_certificate "/etc/nginx/certs/users/[UNIX_USER]_[SITE_UID].pem";
+    ssl_certificate_key "/etc/nginx/certs/users/private/[UNIX_USER]_[SITE_UID].key";
+    # ssl_session_cache shared:SSL:5m;
+    # ssl_session_timeout  10m;
+    # ssl_ciphers          HIGH:!aNULL:!MD5;
+
+    ssl_ciphers 'EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH';
+    ssl_ecdh_curve prime256v1;
+    #ssl_protocols        TLSv1.2 TLSv1.3;
+
+    # ssl_session_tickets off;
+    # ssl_prefer_server_ciphers on;
+    # ssl_stapling on;
+    # ssl_stapling_verify on;
+    
+    ssl_trusted_certificate /etc/nginx/certs/cloudflare_origin_caroot_rsa.pem;
+    #resolver 1.1.1.1 1.0.0.1 valid=300s;
+    #resolver_timeout 5s;
+    ssl_buffer_size 4k; # I've since found 8k works best for this blog. (test!!) Default = 16k
+
+    # Nginx bot
+    include /etc/nginx/ngxblocker/bots.d/blockbots.conf;
+    include /etc/nginx/ngxblocker/bots.d/ddos.conf;
+
+    # allow incoming connections only from cloudflare servers
+
+    # start-cloudflare-Lockdown
+    include /etc/nginx/server/enable-cf-only-access.conf;
+    # end-cloudflare-Lockdown
+
+    # resolve real ip address of visitor behind cloudflare proxy
+    include /etc/nginx/server/cf-realip.conf;
+    
+    # security headers
+    # start-security-headers
+    include /etc/nginx/server/security-headers.conf;
+    # end-security-headers
+
+    # WordPress security & cache configuration (super cache, wp-rocket, etc)
+    include /etc/nginx/server/wp-shield.conf;
+    include /etc/nginx/server/wp-locations.conf;
+    include /etc/nginx/server/wp-cache.conf;
+
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_param PHP_VALUE open_basedir="/home/[UNIX_USER]/public:/var/lib/php/session:/tmp";
+        fastcgi_intercept_errors on;
+        fastcgi_index  index.php;
+        include        /etc/nginx/fastcgi_params;
+        fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+        fastcgi_pass   unix:/run/php-fpm/www-[UNIX_USER].sock;
+
+        #fastcgi_buffer_size 128k;  
+        #fastcgi_buffers 256 16k;  
+        #fastcgi_busy_buffers_size 256k;  
+        #fastcgi_temp_file_write_size 256k;  
+
+        # FastCGI Cache [makes an issues]
+        # fastcgi_cache_bypass $skip_cache;
+        # fastcgi_no_cache $skip_cache;
+        # fastcgi_cache WORDPRESS;
+        # fastcgi_cache_valid  60m;
+    }
+}
