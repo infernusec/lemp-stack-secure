@@ -12,6 +12,40 @@ RUN /tmp/build-nginx/build-nginx.sh
 
 FROM rockylinux:${IMAGE_TAG}-minimal
 USER root
+#RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
+
+# Binary
 COPY --from=build-stage /sbin/nginx /sbin/
+COPY --from=build-stage /usr/sbin/nginx /usr/sbin/
+
+# Folders
+COPY --from=build-stage /etc/nginx/ /etc/nginx/
+
+# Nginx Libraries
+COPY --from=build-stage /var/lib/nginx /var/lib/
+COPY --from=build-stage /usr/share/nginx /usr/share/
+COPY --from=build-stage /usr/lib64/nginx /usr/lib64/
+COPY --from=build-stage /usr/local/lib64/perl5 /usr/local/lib64/
+
+# Other Libraries
+COPY --from=build-stage /usr/local/modsecurity/ /usr/local/
+
+
+
+# Lib64
+COPY --from=build-stage /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/
+
+
+COPY --from=build-stage /lib64/libGeoIP.so.1 /lib64/
+COPY --from=build-stage /lib64/libxml2.so.2 /lib64/
+COPY --from=build-stage /lib64/libpcre.so.1 /lib64/
+COPY --from=build-stage /lib64/libgcc_s.so.1 /lib64/
+COPY --from=build-stage /lib64/libstdc++.so.6 /lib64/
+COPY --from=build-stage /lib64/libz.so.1 /lib64/
+COPY --from=build-stage /lib64/liblzma.so.5 /lib64/
+# libbrotlicommon.so.1 => /lib64/libbrotlicommon.so.1 (0x00007fca18872000)
+
+
+
 #COPY --from=build-stage /bin/nginx /bin/nginx
 WORKDIR /
