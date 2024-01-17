@@ -12,7 +12,10 @@ RUN /tmp/build-nginx/build-nginx.sh
 
 FROM rockylinux:${IMAGE_TAG}-minimal
 USER root
-#RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
+RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
+RUN useradd nginx
+
+# ENV PATH="/sbin/:${PATH}"
 
 # Binary
 COPY --from=build-stage /sbin/nginx /sbin/
@@ -20,22 +23,18 @@ COPY --from=build-stage /usr/sbin/nginx /usr/sbin/
 
 # Folders
 COPY --from=build-stage /etc/nginx/ /etc/nginx/
-
+COPY --from=build-stage /usr/share/nginx/html/ /usr/share/nginx/html/
 # Nginx Libraries
-COPY --from=build-stage /var/lib/nginx /var/lib/
-COPY --from=build-stage /usr/share/nginx /usr/share/
-COPY --from=build-stage /usr/lib64/nginx /usr/lib64/
-COPY --from=build-stage /usr/local/lib64/perl5 /usr/local/lib64/
+COPY --from=build-stage /var/lib/nginx/ /var/lib/nginx/
+COPY --from=build-stage /usr/share/nginx/ /usr/share/nginx/
+COPY --from=build-stage /usr/lib64/nginx/ /usr/lib64/nginx/
+COPY --from=build-stage /usr/local/lib64/perl5 /usr/local/lib64/perl5/
 
 # Other Libraries
 COPY --from=build-stage /usr/local/modsecurity/ /usr/local/
 
-
-
 # Lib64
 COPY --from=build-stage /usr/local/modsecurity/lib/libmodsecurity.so.3 /usr/local/modsecurity/lib/
-
-
 COPY --from=build-stage /lib64/libGeoIP.so.1 /lib64/
 COPY --from=build-stage /lib64/libxml2.so.2 /lib64/
 COPY --from=build-stage /lib64/libpcre.so.1 /lib64/
@@ -45,7 +44,12 @@ COPY --from=build-stage /lib64/libz.so.1 /lib64/
 COPY --from=build-stage /lib64/liblzma.so.5 /lib64/
 # libbrotlicommon.so.1 => /lib64/libbrotlicommon.so.1 (0x00007fca18872000)
 
+# Set prems
+RUN chmod 777 -R /var/log/nginx/*; chmod -R 777 /var/lib/nginx/tmp; chmod -R 777 /usr/share/nginx/*
 
+# USER nginx
+CMD [ "/sbin/nginx" , "-g" , "daemon off;","-c","/etc/nginx/nginx.conf" ]
 
 #COPY --from=build-stage /bin/nginx /bin/nginx
 WORKDIR /
+HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1/
