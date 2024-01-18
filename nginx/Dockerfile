@@ -13,8 +13,7 @@ RUN /tmp/build-nginx/build-nginx.sh
 FROM rockylinux:${IMAGE_TAG}-minimal
 USER root
 RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
-RUN useradd nginx && \
-    usermod -aG 0 nginx
+RUN useradd nginx
 
 ENV PATH="/sbin/:${PATH}"
 
