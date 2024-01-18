@@ -58,4 +58,4 @@ CMD [ "/sbin/nginx" , "-g" , "daemon off;","-c","/etc/nginx/nginx.conf" ]
 
 #COPY --from=build-stage /bin/nginx /bin/nginx
 WORKDIR /
-HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1/
+HEALTHCHECK --timeout=10s CMD curl --silent --fail http://127.0.0.1:80/
