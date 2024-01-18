@@ -15,7 +15,7 @@ USER root
 RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
 RUN useradd nginx
 
-# ENV PATH="/sbin/:${PATH}"
+ENV PATH="/sbin/:${PATH}"
 
 # Binary
 COPY --from=build-stage /sbin/nginx /sbin/
@@ -45,7 +45,7 @@ COPY --from=build-stage /lib64/liblzma.so.5 /lib64/
 # libbrotlicommon.so.1 => /lib64/libbrotlicommon.so.1 (0x00007fca18872000)
 
 # Set prems
-RUN chmod 777 -R /var/log/nginx/*; chmod -R 777 /var/lib/nginx/tmp; chmod -R 777 /usr/share/nginx/*
+RUN chmod 777 -R /var/log/nginx/*; chmod -R 777 /var/lib/nginx/tmp; chmod -R 777 /usr/share/nginx/*; chown -R nginx:nginx /usr/share/nginx
 
 # USER nginx
 CMD [ "/sbin/nginx" , "-g" , "daemon off;","-c","/etc/nginx/nginx.conf" ]
