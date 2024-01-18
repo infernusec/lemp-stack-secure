@@ -13,7 +13,8 @@ RUN /tmp/build-nginx/build-nginx.sh
 FROM rockylinux:${IMAGE_TAG}-minimal
 USER root
 RUN mkdir -p /usr/local/modsecurity/ /etc/nginx/ /var/lib/nginx /var/log/nginx /usr/share/nginx /usr/lib64/nginx /usr/local/lib64/perl5/5.32/auto/nginx
-RUN useradd nginx
+RUN useradd nginx && \
+    usermod -aG 0 nginx
 
 ENV PATH="/sbin/:${PATH}"
 
@@ -27,6 +28,7 @@ COPY --from=build-stage /usr/share/nginx/html/ /usr/share/nginx/html/
 # Nginx Libraries
 COPY --from=build-stage /var/lib/nginx/ /var/lib/nginx/
 COPY --from=build-stage /usr/share/nginx/ /usr/share/nginx/
+COPY --from=build-stage /usr/share/testpage/ /usr/share/testpage/
 COPY --from=build-stage /usr/lib64/nginx/ /usr/lib64/nginx/
 COPY --from=build-stage /usr/local/lib64/perl5 /usr/local/lib64/perl5/
 
@@ -45,7 +47,12 @@ COPY --from=build-stage /lib64/liblzma.so.5 /lib64/
 # libbrotlicommon.so.1 => /lib64/libbrotlicommon.so.1 (0x00007fca18872000)
 
 # Set prems
-RUN chmod 777 -R /var/log/nginx/*; chmod -R 777 /var/lib/nginx/tmp; chmod -R 777 /usr/share/nginx/*; chown -R nginx:nginx /usr/share/nginx
+RUN chmod 777 -R /var/log/nginx/ && \ 
+    chmod -R 777 /var/lib/nginx/tmp && \
+    chmod -R 777 /usr/share/nginx/* && \
+    chown -R nginx:nginx /usr/share/nginx && \
+    chmod -R 777 /usr/share/testpage && \
+    chown -R nginx:nginx /usr/share/testpage
 
 # USER nginx
 CMD [ "/sbin/nginx" , "-g" , "daemon off;","-c","/etc/nginx/nginx.conf" ]
