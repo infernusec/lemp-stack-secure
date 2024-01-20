@@ -1,0 +1,25 @@
+version: '3'
+services:
+  mysql-db:
+    build: './mysql'
+    env_file: ./.env
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    volumes:
+      - ./mysql_data:/var/lib/mysql
+  nginx:
+    build: './nginx'
+    volumes:
+      - ./public_html:/usr/share/nginx/html
+      - ./shared:/home/shared:rw
+    ports:
+      - 8080:80
+      - 8443:443
+    depends_on:
+      - php-fpm
+      - mysql-db
+  php-fpm:
+    build: './php-fpm'
+    volumes:
+      - ./public_html:/home/public_html
+      - ./shared:/home/shared:rw
+    env_file: ./.env
