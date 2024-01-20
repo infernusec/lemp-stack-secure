@@ -14,12 +14,22 @@ services:
     ports:
       - 8080:80
       - 8443:443
+  redis:
+    build: './redis'
+    volumes:
+      - ./redis-data:/data
+      - ./shared:/home/shared:rw
+    ports:
+      - 6379:6379
     depends_on:
       - php-fpm
-      - mysql-db
   php-fpm:
     build: './php-fpm'
     volumes:
       - ./public_html:/home/public_html
       - ./shared:/home/shared:rw
     env_file: ./.env
+    depends_on:
+      - nginx
+      - mysql-db
+      - redis
