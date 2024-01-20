@@ -6,6 +6,7 @@
 BASE_WORKDIR=$(pwd)
 NGINX_HONEYPOTNAME=$(openssl rand -hex 4)
 NGINX_DEPLOY_CONTENT="./nginx-confs"
+MODSEC_RULES_TAG="3.3.5"
 
 
 # disable_functions = chgrp, chmod, chown, dl, eval, exec, fsockopen, lchgrp, lchown, link, passthru, pcntl_fork, phpinfo, popen, proc_get_status, proc_nice, proc_open, proc_terminate, posix_initgroups, posix_kill, posix_mkfifo, posix_mknod, posix_setegid, posix_seteuid, posix_setgid, posix_setpgid, posix_setsid, posix_setuid, shell_exec, show_source, stream_select, stream_socket_client, stream_socket_server, symlink, system
@@ -27,11 +28,6 @@ cp /etc/nginx/fastcgi_params.default /etc/nginx/fastcgi_params_$REST_UNIX_USER
 
 # Disable php functions
 echo "fastcgi_param PHP_VALUE disable_functions=\"$PHP_DISABLE_FUNCTIONS\";" >> /etc/nginx/fastcgi_params
-
-
-
-# systemctl enable --now nginx
-
 
 ## Required modules
 # Modsecurity - V
@@ -100,13 +96,13 @@ cp $BASE_WORKDIR/nginx_modules/ModSecurity/unicode.mapping /etc/nginx/modsec/
 # https://coreruleset.org/docs/deployment/install/
 echo "Download OWASP Modsecurity Ruleset.."
 cd /etc/nginx/modsec/ruleset
-wget -O - https://github.com/coreruleset/coreruleset/archive/refs/tags/v3.3.4.tar.gz | tar -xz
-cd coreruleset-3.3.4/ 
+wget -O - "https://github.com/coreruleset/coreruleset/archive/refs/tags/v${MODSEC_RULES_TAG}.tar.gz" | tar -xz
+cd coreruleset-${MODSEC_RULES_TAG}/ 
 mv crs-setup.conf.example crs-setup.conf
 
 echo "include /etc/nginx/modsec/modsecurity.conf" > /etc/nginx/modsec/main.conf
-echo "include /etc/nginx/modsec/ruleset/coreruleset-3.3.4/crs-setup.conf" >> /etc/nginx/modsec/main.conf
-echo "include /etc/nginx/modsec/ruleset/coreruleset-3.3.4/rules/*.conf" >> /etc/nginx/modsec/main.conf
+echo "include /etc/nginx/modsec/ruleset/coreruleset-${MODSEC_RULES_TAG}/crs-setup.conf" >> /etc/nginx/modsec/main.conf
+echo "include /etc/nginx/modsec/ruleset/coreruleset-${MODSEC_RULES_TAG}/rules/*.conf" >> /etc/nginx/modsec/main.conf
 
 
 cd $BASE_WORKDIR/nginx_modules

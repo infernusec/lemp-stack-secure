@@ -24,6 +24,7 @@ COPY --from=build-stage /usr/sbin/nginx /usr/sbin/
 # Folders
 COPY --from=build-stage /etc/nginx/ /etc/nginx/
 COPY --from=build-stage /usr/share/nginx/html/ /usr/share/nginx/html/
+
 # Nginx Libraries
 COPY --from=build-stage /var/lib/nginx/ /var/lib/nginx/
 COPY --from=build-stage /usr/share/nginx/ /usr/share/nginx/
