@@ -21,8 +21,6 @@ services:
       - ./shared:/home/shared:rw
     ports:
       - 6379:6379
-    depends_on:
-      - php-fpm
   php-fpm:
     build: './php-fpm'
     volumes:
